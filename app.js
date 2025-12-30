@@ -6,6 +6,7 @@ const currencyFormatter = new Intl.NumberFormat('tr-TR', {
 
 const defaultPriceList = {
   name: 'Hepsi',
+  group: 'Genel',
   items: [
     { code: 'P001', name: 'PPRC 32 Boru', price: 100, image: '🔵' },
     { code: 'P002', name: 'PPRC 25 Boru', price: 72.5, image: '🟢' },
@@ -20,19 +21,28 @@ class PriceListStore {
   constructor() {
     const stored = localStorage.getItem('priceLists');
     this.lists = stored ? JSON.parse(stored) : [defaultPriceList];
+    this.ensureItemIds();
     this.persist();
+  }
+
+  ensureItemIds() {
+    this.lists = this.lists.map((list) => ({
+      ...list,
+      items: list.items.map((item) => ({ id: crypto.randomUUID(), ...item })),
+    }));
   }
 
   persist() {
     localStorage.setItem('priceLists', JSON.stringify(this.lists));
   }
 
-  addList(name, items) {
+  addList(name, items, group = 'Genel') {
     const existingIndex = this.lists.findIndex((l) => l.name === name);
+    const normalizedItems = items.map((item) => ({ id: crypto.randomUUID(), ...item }));
     if (existingIndex >= 0) {
-      this.lists[existingIndex] = { name, items };
+      this.lists[existingIndex] = { name, group, items: normalizedItems };
     } else {
-      this.lists.push({ name, items });
+      this.lists.push({ name, group, items: normalizedItems });
     }
     this.persist();
   }
@@ -65,6 +75,9 @@ class OfferBuilder {
     this.globalDiscount = document.getElementById('globalDiscount');
     this.maturityDiff = document.getElementById('maturityDiff');
     this.paymentType = document.getElementById('paymentType');
+    this.manageListSelect = document.getElementById('manageListSelect');
+    this.listEditorBody = document.getElementById('listEditorBody');
+    this.listEditorEmpty = document.getElementById('listEditorEmpty');
 
     document.querySelectorAll('.tab').forEach((tab) => {
       tab.addEventListener('click', () => this.switchTab(tab.dataset.target));
@@ -93,6 +106,10 @@ class OfferBuilder {
 
     document.getElementById('saveList').addEventListener('click', () => this.saveUploadedList());
     document.getElementById('listUpload').addEventListener('change', (e) => this.previewListFile(e));
+    this.manageListSelect.addEventListener('change', () => this.renderListEditor());
+    document.getElementById('bulkDeleteItems').addEventListener('click', () => this.bulkDeleteSelected());
+    document.getElementById('saveEdits').addEventListener('click', () => this.persistEditedRows());
+    document.getElementById('toggleAllRows').addEventListener('change', (e) => this.toggleAllRows(e.target.checked));
   }
 
   switchTab(target) {
@@ -109,7 +126,7 @@ class OfferBuilder {
     this.store.lists.forEach((list) => {
       const option = document.createElement('option');
       option.value = list.name;
-      option.textContent = list.name;
+      option.textContent = `${list.name} (${list.group || 'Genel'})`;
       this.listSelect.appendChild(option);
     });
 
@@ -118,9 +135,18 @@ class OfferBuilder {
     this.store.lists.forEach((list) => {
       const li = document.createElement('li');
       li.className = 'list-card';
-      li.innerHTML = `<h5>${list.name}</h5><div class="badge">${list.items.length} ürün</div>`;
+      li.innerHTML = `<h5>${list.name}</h5><small>${list.group || 'Genel'}</small><div class="badge">${list.items.length} ürün</div>`;
       overview.appendChild(li);
     });
+
+    this.manageListSelect.innerHTML = '';
+    this.store.lists.forEach((list) => {
+      const option = document.createElement('option');
+      option.value = list.name;
+      option.textContent = `${list.name} (${list.group || 'Genel'})`;
+      this.manageListSelect.appendChild(option);
+    });
+    this.renderListEditor();
   }
 
   renderArchive() {
@@ -541,6 +567,7 @@ class OfferBuilder {
 
   async saveUploadedList() {
     const name = document.getElementById('newListName').value.trim();
+    const group = document.getElementById('newListGroup').value.trim() || 'Genel';
     const fileInput = document.getElementById('listUpload');
     const file = fileInput.files?.[0];
 
@@ -557,11 +584,80 @@ class OfferBuilder {
       .filter((r) => r.length >= 3)
       .map((r) => ({ code: r[0], name: r[1], price: Number(r[2]) || 0 }));
 
-    this.store.addList(name, items);
+    this.store.addList(name, items, group);
     this.renderPriceLists();
     fileInput.value = '';
     document.getElementById('newListName').value = '';
+    document.getElementById('newListGroup').value = '';
     alert(`${name} listesi eklendi (${items.length} ürün).`);
+  }
+
+  renderListEditor() {
+    const list = this.store.getList(this.manageListSelect.value);
+    this.listEditorBody.innerHTML = '';
+    if (!list || !list.items.length) {
+      this.listEditorEmpty.style.display = 'block';
+      return;
+    }
+    this.listEditorEmpty.style.display = 'none';
+    list.items.forEach((item) => {
+      const row = document.createElement('tr');
+      row.dataset.id = item.id;
+      row.innerHTML = `
+        <td><input type="checkbox" data-row-select /></td>
+        <td><input type="text" value="${item.code}" data-field="code" /></td>
+        <td><input type="text" value="${item.name}" data-field="name" /></td>
+        <td><input type="number" step="0.01" min="0" value="${item.price}" data-field="price" /></td>
+      `;
+      row.querySelectorAll('input[type=\"text\"], input[type=\"number\"]').forEach((input) => {
+        input.addEventListener('input', () => this.markRowEdited(item.id, input.dataset.field, input.value));
+      });
+      row.querySelector('[data-row-select]').addEventListener('change', () => this.syncToggleAllCheckbox());
+      this.listEditorBody.appendChild(row);
+    });
+    this.syncToggleAllCheckbox();
+  }
+
+  markRowEdited(id, field, value) {
+    const list = this.store.getList(this.manageListSelect.value);
+    if (!list) return;
+    list.items = list.items.map((item) => {
+      if (item.id !== id) return item;
+      const updated = { ...item, [field]: field === 'price' ? Number(value) || 0 : value };
+      return updated;
+    });
+    this.store.persist();
+  }
+
+  toggleAllRows(checked) {
+    this.listEditorBody.querySelectorAll('input[type=\"checkbox\"][data-row-select]').forEach((cb) => {
+      cb.checked = checked;
+    });
+  }
+
+  syncToggleAllCheckbox() {
+    const rows = this.listEditorBody.querySelectorAll('input[type=\"checkbox\"][data-row-select]');
+    const allChecked = rows.length && Array.from(rows).every((cb) => cb.checked);
+    document.getElementById('toggleAllRows').checked = allChecked;
+  }
+
+  bulkDeleteSelected() {
+    const list = this.store.getList(this.manageListSelect.value);
+    if (!list) return;
+    const selectedIds = Array.from(this.listEditorBody.querySelectorAll('input[data-row-select]:checked')).map(
+      (cb) => cb.closest('tr').dataset.id
+    );
+    if (!selectedIds.length) {
+      alert('Silmek için ürün seçin.');
+      return;
+    }
+    list.items = list.items.filter((item) => !selectedIds.includes(item.id));
+    this.store.persist();
+    this.renderPriceLists();
+  }
+
+  persistEditedRows() {
+    alert('Değişiklikler kaydedildi.');
   }
 }
 

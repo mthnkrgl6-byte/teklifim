@@ -340,6 +340,62 @@ dd {
   margin: 0 0 4px;
 }
 
+.list-card small {
+  color: var(--muted);
+  display: block;
+}
+
+.list-editor {
+  margin-top: 12px;
+  border-top: 1px dashed var(--border);
+  padding-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.list-table-wrapper {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.list-table th,
+.list-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  background: white;
+}
+
+.list-table th:first-child,
+.list-table td:first-child {
+  width: 40px;
+  text-align: center;
+}
+
+.list-table input[type='text'],
+.list-table input[type='number'] {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--accent);
+}
+
+.list-editor-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.link.danger {
+  color: var(--danger);
+}
+
 .archive-list {
   display: grid;
   gap: 12px;

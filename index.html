@@ -115,6 +115,10 @@
             <input type="text" id="newListName" placeholder="Örn: 2024 PPRC" />
           </label>
           <label class="control">
+            <span>Ürün Grubu</span>
+            <input type="text" id="newListGroup" placeholder="Örn: PPRC Boru" />
+          </label>
+          <label class="control">
             <span>Excel Yükle (.xlsx, .csv)</span>
             <input type="file" id="listUpload" accept=".xls,.xlsx,.csv" />
           </label>
@@ -124,6 +128,30 @@
         <div class="lists-preview">
           <h4>Mevcut Listeler</h4>
           <ul id="listOverview"></ul>
+          <div class="list-editor">
+            <label class="control">
+              <span>Düzenlenecek Liste</span>
+              <select id="manageListSelect"></select>
+            </label>
+            <div class="list-table-wrapper">
+              <table class="list-table">
+                <thead>
+                  <tr>
+                    <th><input type="checkbox" id="toggleAllRows" /></th>
+                    <th>Ürün Kodu</th>
+                    <th>Ürün Adı</th>
+                    <th>Birim Fiyat</th>
+                  </tr>
+                </thead>
+                <tbody id="listEditorBody"></tbody>
+              </table>
+              <div class="empty" id="listEditorEmpty">Liste seçin veya yükleyin.</div>
+            </div>
+            <div class="list-editor-actions">
+              <button class="link danger" id="bulkDeleteItems">Seçilenleri Sil</button>
+              <button class="link" id="saveEdits">Değişiklikleri Kaydet</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
