@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Teklif Merkezi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">TEKLİF MERKEZİ</div>
+    <nav class="tabs">
+      <button class="tab active" data-target="create">Teklif Oluştur</button>
+      <button class="tab" data-target="archive">Teklif Arşivi</button>
+      <button class="tab" data-target="lists">Fiyat Liste Ekleme</button>
+    </nav>
+  </header>
+
+  <main class="page" id="create" role="main">
+    <section class="panel">
+      <div class="panel-header">Müşteri Talebi</div>
+      <div class="customer-input">
+        <textarea id="customerRequest" placeholder="Buraya Excel, Word, Fotoğraf veya yazı ekleyin"></textarea>
+        <div class="converter-box">
+          <input type="file" id="excelInput" accept=".xls,.xlsx,.csv" hidden />
+          <input type="file" id="wordInput" accept=".doc,.docx,.txt" hidden />
+          <input type="file" id="imageInput" accept="image/*" hidden />
+          <button data-action="excel" class="pill">Excelden Dönüştür</button>
+          <button data-action="word" class="pill">Wordden Dönüştür</button>
+          <button data-action="text" class="pill">Yazıdan Dönüştür</button>
+          <button data-action="photo" class="pill">Fotoğraftan Dönüştür</button>
+          <p class="upload-hint" id="uploadHint">Henüz dosya eklenmedi.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">Dönüştürülmüş Liste</div>
+      <div class="grid">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Ürün Kodu</th>
+                <th>Ürün Adı</th>
+                <th>Adet</th>
+                <th>Birim Fiyat</th>
+                <th>İskonto</th>
+                <th>KDV</th>
+                <th>Toplam</th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+          <div class="empty" id="emptyState">Henüz ürün eklenmedi. Dönüştürme butonlarını kullanın.</div>
+        </div>
+        <aside class="sidebar">
+          <div class="sidebar-actions">
+            <button id="addEmptyItem" class="link">Ürün Ekle</button>
+            <button id="editSelected" class="link" disabled>Ürün Düzelt</button>
+            <button id="deleteSelected" class="link" disabled>Ürün Sil</button>
+          </div>
+          <div class="control">
+            <label for="priceListSelect">Liste Seç</label>
+            <select id="priceListSelect"></select>
+          </div>
+          <div class="control">
+            <label for="globalDiscount">İskonto (%)</label>
+            <input type="number" id="globalDiscount" min="0" max="100" value="0" />
+          </div>
+          <div class="control">
+            <label for="paymentType">Ödeme Türü</label>
+            <select id="paymentType">
+              <option value="peşin">Peşin</option>
+              <option value="30">30 Gün</option>
+              <option value="60">60 Gün</option>
+              <option value="90">90 Gün</option>
+            </select>
+          </div>
+          <div class="control">
+            <label for="maturityDiff">Vade Fark (%)</label>
+            <input type="number" id="maturityDiff" min="0" value="0" />
+          </div>
+          <button id="generateOffer" class="primary">Teklif Oluştur</button>
+          <dl class="totals">
+            <div><dt>Ara Toplam</dt><dd id="subtotal">₺0,00</dd></div>
+            <div><dt>KDV</dt><dd id="vatTotal">₺0,00</dd></div>
+            <div><dt>Vade Farkı</dt><dd id="maturityTotal">₺0,00</dd></div>
+            <div class="grand"><dt>Genel Toplam</dt><dd id="grandTotal">₺0,00</dd></div>
+          </dl>
+        </aside>
+      </div>
+    </section>
+
+    <section class="download">
+      <h3>TEKLİFİ İNDİR</h3>
+      <div class="download-buttons">
+        <button class="pdf" id="downloadPdf">PDF</button>
+        <button class="excel" id="downloadExcel">Excel</button>
+        <button class="word" id="downloadWord">Word</button>
+      </div>
+    </section>
+  </main>
+
+  <section class="page hidden" id="lists" aria-hidden="true">
+    <section class="panel">
+      <div class="panel-header">Fiyat Listesi Yönetimi</div>
+      <div class="list-manager">
+        <div>
+          <label class="control">
+            <span>Liste Adı</span>
+            <input type="text" id="newListName" placeholder="Örn: 2024 PPRC" />
+          </label>
+          <label class="control">
+            <span>Excel Yükle (.xlsx, .csv)</span>
+            <input type="file" id="listUpload" accept=".xls,.xlsx,.csv" />
+          </label>
+          <p class="help">Sütun sırası: Ürün Kodu, Ürün Adı, Birim Fiyat.</p>
+          <button class="primary" id="saveList">Listeyi Ekle</button>
+        </div>
+        <div class="lists-preview">
+          <h4>Mevcut Listeler</h4>
+          <ul id="listOverview"></ul>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section class="page hidden" id="archive" aria-hidden="true">
+    <section class="panel">
+      <div class="panel-header">Teklif Arşivi</div>
+      <p class="muted">Bu demo, teklif arşivini tarayıcı belleğinde saklıyor. Yeni teklif oluşturduğunuzda bu bölüm otomatik dolacak.</p>
+      <div id="archiveList" class="archive-list"></div>
+    </section>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js" integrity="sha512-DIR8ZPHjA3SKNzcR1oX5wqON3+rXgFlnUQttvmoJ6pbq3PdK7E+GzFEGJR04FhMT8LNdchzm7Y+JjKPKHuiX8g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
